@@ -15,7 +15,8 @@ import type {
 } from "../types";
 
 // Direct connection to ACP backend (CORS is configured to allow all origins)
-const ACP_BASE_URL = "http://localhost:3001";
+// ACP backend URL is configurable via environment variable VITE_ACP_BASE_URL (default: http://localhost:3001)
+const ACP_BASE_URL = import.meta.env.VITE_ACP_BASE_URL || "http://localhost:3001";
 
 class AcpService {
   private baseUrl: string;
