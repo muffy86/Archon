@@ -129,6 +129,7 @@ interface KnowledgeItemCardProps {
   onDelete: (sourceId: string) => void;
   onUpdate?: () => void;
   onRefresh?: (sourceId: string) => void;
+  onBrowseDocuments?: (sourceId: string) => void;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (event: React.MouseEvent) => void;
@@ -139,6 +140,7 @@ export const KnowledgeItemCard = ({
   onDelete,
   onUpdate,
   onRefresh,
+  onBrowseDocuments,
   isSelectionMode = false,
   isSelected = false,
   onToggleSelection
@@ -151,6 +153,7 @@ export const KnowledgeItemCard = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [loadedCodeExamples, setLoadedCodeExamples] = useState<any[] | null>(null);
   const [isLoadingCodeExamples, setIsLoadingCodeExamples] = useState(false);
+  const [isRecrawling, setIsRecrawling] = useState(false);
 
   const statusColorMap = {
     active: 'green',
@@ -210,8 +213,14 @@ export const KnowledgeItemCard = ({
   };
 
   const handleRefresh = () => {
-    if (onRefresh) {
+    if (onRefresh && !isRecrawling) {
+      setIsRecrawling(true);
       onRefresh(item.source_id);
+      // Temporary fix: Auto-reset after timeout
+      // TODO: Reset based on actual crawl completion status from polling
+      setTimeout(() => {
+        setIsRecrawling(false);
+      }, 60000); // Reset after 60 seconds as a fallback
     }
   };
 
@@ -369,15 +378,18 @@ export const KnowledgeItemCard = ({
               {item.metadata.source_type === 'url' && (
                 <button
                   onClick={handleRefresh}
+                  disabled={isRecrawling}
                   className={`flex items-center gap-1 mb-1 px-2 py-1 transition-colors ${
-                    item.metadata.knowledge_type === 'technical' 
-                      ? 'text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
-                      : 'text-cyan-500 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300'
+                    isRecrawling 
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                      : item.metadata.knowledge_type === 'technical' 
+                        ? 'text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+                        : 'text-cyan-500 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300'
                   }`}
-                  title={`Refresh from: ${item.metadata.original_url || item.url || 'URL not available'}`}
+                  title={isRecrawling ? 'Recrawl in progress...' : `Refresh from: ${item.metadata.original_url || item.url || 'URL not available'}`}
                 >
-                  <RefreshCw className="w-3 h-3" />
-                  <span className="text-sm font-medium">Recrawl</span>
+                  <RefreshCw className={`w-3 h-3 ${isRecrawling ? 'animate-spin' : ''}`} />
+                  <span className="text-sm font-medium">{isRecrawling ? 'Recrawling...' : 'Recrawl'}</span>
                 </button>
               )}
               <span className="text-xs text-gray-500 dark:text-zinc-500">
@@ -444,13 +456,20 @@ export const KnowledgeItemCard = ({
                 </div>
               )}
               
-              {/* Page count - orange neon container */}
+              {/* Page count - orange neon container (clickable for document browser) */}
               <div
-                className="relative card-3d-layer-3"
+                className="relative card-3d-layer-3 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onBrowseDocuments) {
+                    onBrowseDocuments(item.source_id);
+                  }
+                }}
                 onMouseEnter={() => setShowPageTooltip(true)}
                 onMouseLeave={() => setShowPageTooltip(false)}
+                title="Click to browse document chunks"
               >
-                <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 border border-orange-500/40 rounded-full backdrop-blur-sm shadow-[0_0_15px_rgba(251,146,60,0.3)] transition-all duration-300">
+                <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 border border-orange-500/40 rounded-full backdrop-blur-sm shadow-[0_0_15px_rgba(251,146,60,0.3)] hover:shadow-[0_0_20px_rgba(251,146,60,0.5)] transition-all duration-300">
                   <FileText className="w-3 h-3 text-orange-400" />
                   <span className="text-xs text-orange-400 font-medium">
                     {Math.ceil(
@@ -461,10 +480,13 @@ export const KnowledgeItemCard = ({
                 {/* Page count tooltip - positioned relative to the badge */}
                 {showPageTooltip && (
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-black dark:bg-zinc-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-50 whitespace-nowrap">
-                    <div className="font-medium mb-1">
-                      {(item.metadata.word_count || 0).toLocaleString()} words
+                    <div className="font-medium mb-1 text-orange-300">
+                      Click to Browse Documents
                     </div>
                     <div className="text-gray-300 space-y-0.5">
+                      <div>
+                        {(item.metadata.word_count || 0).toLocaleString()} words
+                      </div>
                       <div>
                         = {Math.ceil((item.metadata.word_count || 0) / 250).toLocaleString()} pages
                       </div>

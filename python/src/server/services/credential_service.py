@@ -69,9 +69,9 @@ class CredentialService:
                 match = re.match(r"https://([^.]+)\.supabase\.co", url)
                 if match:
                     project_id = match.group(1)
-                    logger.info(f"Supabase client initialized for project: {project_id}")
+                    logger.debug(f"Supabase client initialized for project: {project_id}")
                 else:
-                    logger.info("Supabase client initialized successfully")
+                    logger.debug("Supabase client initialized successfully")
 
             except Exception as e:
                 logger.error(f"Error initializing Supabase client: {e}")
@@ -227,14 +227,11 @@ class CredentialService:
                 self._cache[key] = value
 
             # Upsert to database with proper conflict handling
-            result = (
-                supabase.table("archon_settings")
-                .upsert(
-                    data,
-                    on_conflict="key",  # Specify the unique column for conflict resolution
-                )
-                .execute()
-            )
+            # Since we validate service key at startup, permission errors here indicate actual database issues
+            supabase.table("archon_settings").upsert(
+                data,
+                on_conflict="key",  # Specify the unique column for conflict resolution
+            ).execute()
 
             # Invalidate RAG settings cache if this is a rag_strategy setting
             if category == "rag_strategy":
@@ -256,7 +253,8 @@ class CredentialService:
         try:
             supabase = self._get_supabase_client()
 
-            result = supabase.table("archon_settings").delete().eq("key", key).execute()
+            # Since we validate service key at startup, we can directly execute
+            supabase.table("archon_settings").delete().eq("key", key).execute()
 
             # Remove from cache
             if key in self._cache:

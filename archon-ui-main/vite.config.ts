@@ -15,7 +15,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
   // Get host and port from environment variables or use defaults
   // For internal Docker communication, use the service name
   // For external access, use the HOST from environment
-  const isDocker = process.env.DOCKER_ENV === 'true' || !!process.env.HOSTNAME;
+  const isDocker = process.env.DOCKER_ENV === 'true' || existsSync('/.dockerenv');
   const internalHost = 'archon-server';  // Docker service name for internal communication
   const externalHost = process.env.HOST || 'localhost';  // Host for external access
   const host = isDocker ? internalHost : externalHost;
@@ -278,14 +278,23 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     ],
     server: {
       host: '0.0.0.0', // Listen on all network interfaces with explicit IP
-      port: 5173, // Match the port expected in Docker
+      port: parseInt(process.env.ARCHON_UI_PORT || env.ARCHON_UI_PORT || '3737'), // Use configurable port
       strictPort: true, // Exit if port is in use
+      allowedHosts: (() => {
+        const defaultHosts = ['localhost', '127.0.0.1', '::1'];
+        const customHosts = env.VITE_ALLOWED_HOSTS?.trim()
+          ? env.VITE_ALLOWED_HOSTS.split(',').map(h => h.trim()).filter(Boolean)
+          : [];
+        const hostFromEnv = (process.env.HOST ?? env.HOST) && (process.env.HOST ?? env.HOST) !== 'localhost' 
+          ? [process.env.HOST ?? env.HOST] 
+          : [];
+        return [...new Set([...defaultHosts, ...hostFromEnv, ...customHosts])];
+      })(),
       proxy: {
         '/api': {
           target: `http://${host}:${port}`,
           changeOrigin: true,
           secure: false,
-          ws: true,
           configure: (proxy, options) => {
             proxy.on('error', (err, req, res) => {
               console.log('🚨 [VITE PROXY ERROR]:', err.message);
@@ -297,17 +306,28 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
             });
           }
         },
-        // Socket.IO specific proxy configuration
-        '/socket.io': {
-          target: `http://${host}:${port}`,
+        // Proxy for ACP backend on localhost:3001
+        '/acp': {
+          target: 'http://localhost:3001',
           changeOrigin: true,
-          ws: true
+          secure: false,
+          rewrite: (path) => path.replace(/^\/acp/, ''),
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('🚨 [ACP PROXY ERROR]:', err.message);
+              console.log('🚨 [ACP PROXY ERROR] Request:', req.url);
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('🔄 [ACP PROXY] Forwarding:', req.method, req.url, 'to localhost:3001');
+            });
+          }
         }
       },
     },
     define: {
       'import.meta.env.VITE_HOST': JSON.stringify(host),
       'import.meta.env.VITE_PORT': JSON.stringify(port),
+      'import.meta.env.PROD': env.PROD === 'true',
     },
     resolve: {
       alias: {
@@ -317,15 +337,18 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
     test: {
       globals: true,
       environment: 'jsdom',
-      setupFiles: './test/setup.ts',
+      setupFiles: './tests/setup.ts',
       css: true,
+      include: [
+        'src/**/*.{test,spec}.{ts,tsx}',  // Tests colocated in features
+        'tests/**/*.{test,spec}.{ts,tsx}'  // Tests in tests directory
+      ],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
         '**/cypress/**',
         '**/.{idea,git,cache,output,temp}/**',
-        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
-        '**/*.test.{ts,tsx}',
+        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*'
       ],
       env: {
         VITE_HOST: host,
@@ -336,7 +359,7 @@ export default defineConfig(({ mode }: ConfigEnv): UserConfig => {
         reporter: ['text', 'json', 'html'],
         exclude: [
           'node_modules/',
-          'test/',
+          'tests/',
           '**/*.d.ts',
           '**/*.config.*',
           '**/mockData.ts',
