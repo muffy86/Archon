@@ -36,7 +36,7 @@ server = [
     # Web framework
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
-    "python-multipart>=0.0.20",
+    "python-multipart>=0.0.27",
     "watchfiles>=0.18",
     # Web crawling
     "crawl4ai==0.6.2",
@@ -102,7 +102,7 @@ all = [
     # All server dependencies
     "fastapi>=0.104.0",
     "uvicorn>=0.24.0",
-    "python-multipart>=0.0.20",
+    "python-multipart>=0.0.27",
     "watchfiles>=0.18",
     "crawl4ai==0.6.2",
     "supabase==2.15.1",
