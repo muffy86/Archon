@@ -70,7 +70,7 @@ server = [
 # Optional reranking dependencies for server
 server-reranking = [
     "sentence-transformers>=4.1.0",
-    "torch>=2.0.0",
+    "torch>=2.12.0",
     "transformers>=4.30.0",
 ]
 
