@@ -52,7 +52,7 @@ server = [
     "markdown>=3.8",
     # Security and utilities
     "python-jose[cryptography]>=3.3.0",
-    "cryptography>=41.0.0",
+    "cryptography>=48.0.1",
     "slowapi>=0.1.9",
     # Core utilities
     "httpx>=0.24.0",
@@ -113,7 +113,7 @@ all = [
     "python-docx>=1.1.2",
     "markdown>=3.8",
     "python-jose[cryptography]>=3.3.0",
-    "cryptography>=41.0.0",
+    "cryptography>=48.0.1",
     "slowapi>=0.1.9",
     "docker>=6.1.0",
     "logfire>=0.30.0",
