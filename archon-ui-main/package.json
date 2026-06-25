@@ -28,7 +28,7 @@
     "seed:projects": "node --loader ts-node/esm ../scripts/seed-project-data.ts"
   },
   "dependencies": {
-    "@mdxeditor/editor": "^3.42.0",
+    "@mdxeditor/editor": "^4.0.4",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
