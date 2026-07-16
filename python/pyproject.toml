@@ -76,7 +76,7 @@ server-reranking = [
 
 # MCP container dependencies
 mcp = [
-    "mcp==1.12.2",
+    "mcp==1.27.2",
     "httpx>=0.24.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
@@ -118,7 +118,7 @@ all = [
     "docker>=6.1.0",
     "logfire>=0.30.0",
     # MCP specific (mcp version)
-    "mcp==1.12.2",
+    "mcp==1.27.2",
     # Agents specific
     "pydantic-ai>=0.0.13",
     "structlog>=23.1.0",
